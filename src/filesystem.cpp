@@ -188,6 +188,7 @@ const char* getExampleFilePath(){
 // We 
 
 soundfile* getSoundFileForImage(int imageNumber){
+  //May return a nullpointer!!
   // Needed information
   //  current imageSeries (=folder)
   //  imageNb to image mapping
@@ -214,13 +215,14 @@ soundfile* getSoundFileForImage(int imageNumber){
     soundListForImage->pop_front();
     soundListForImage->push_back(soundFileToPlay);
   }
+  else{
+
+  }
   return soundFileToPlay;
 
 }
 
-const bool loadImageList(){
 
-}
 
 
 bool addSoundFile(const char *folderpath, const char* cstr){
@@ -245,11 +247,13 @@ bool addSoundFile(const char *folderpath, const char* cstr){
   if(imageNb>=MAXIMAGES){
     return false; //we do not have enough space for the image
   }
-  soundfile *snd= new soundfile(String(folderpath)+fileName);
+  soundfile *snd= new soundfile(String(folderpath), fileName);
   soundfilelist[imageNb].push_back(snd);
-
-
+  Serial.printf("Added soundfile $s\n",snd->getFullPath());
+  return true;
 }
+
+
 
 bool loadFolderWithSoundFiles(int maxNbImages, const char *folderpath){
   Serial.printf("Loading images from directory: %s\n", folderpath);
@@ -282,5 +286,47 @@ bool loadFolderWithSoundFiles(int maxNbImages, const char *folderpath){
     file = root.openNextFile();
   }
 
+
+}
+
+bool loadImageCollectionList(){
+  String folderpath = String(ROOTSOUNDFOLDER);
+
+  Serial.printf("Loading images from directory: %s\n", folderpath);
+  
+  fs::SDFS* fs = &SD;
+  File root = fs->open(folderpath);
+  if(!root){
+    Serial.println("Failed to open directory");
+    return false;
+  }
+  if(!root.isDirectory()){
+    Serial.println("Not a directory");
+    return false;
+  }
+
+  File file = root.openNextFile();
+  while(file){
+    if(file.isDirectory()){
+      Serial.print("  DIR : ");
+      Serial.println(file.name());
+    } else {
+      Serial.print("  FILE: ");
+      Serial.print(file.name());
+      Serial.print("  SIZE: ");
+      Serial.println(file.size());
+
+      // ----- Append to own list ---
+      char folderpathArray[30];
+      folderpath.toCharArray(folderpathArray,30);
+      addSoundFile(folderpathArray, file.name());
+    }
+    file = root.openNextFile();
+  }
+
+}
+
+const bool loadImageList(){
+  return loadFolderWithSoundFiles(MAXIMAGES,ROOTSOUNDFOLDER);
 
 }

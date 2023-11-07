@@ -5,7 +5,7 @@
 #include <AudioFileSourceFunction.h>
 #include <AudioFileSourceSD.h>
 #include <AudioGeneratorWAV.h>
-#include <AudioOutputI2S.h>
+
 
 // To run, set your ESP8266 build to 160MHz, and include a SPIFFS of 512KB or greater.
 // Use the "Tools->ESP8266/ESP32 Sketch Data Upload" menu to write the MP3 to SPIFFS
@@ -17,7 +17,11 @@ AudioGeneratorWAV* wav;
 AudioFileSourceFunction* file;
 AudioFileSourceSD* sourceFile;
 AudioGeneratorWAV* decoderWAV;
+
+#include <AudioOutputI2S.h>
 AudioOutputI2S* out;
+
+
 
 
 bool setupSound(){
@@ -69,7 +73,21 @@ bool setupSound(){
   // you can also use the pre-defined function
   // file->addAudioGenerators(sine_wave);
   //out = new AudioOutputI2S();
-  out = new AudioOutputI2S(0,1); //Uncomment this line, comment the next one to use the internal DAC channel 1 (pin25) on ESP32
+  #ifdef AUDIO_DIRECT
+    out = new AudioOutputI2S(0,1); //Uncomment this line, comment the next one to use the internal DAC channel 1 (pin25) on ESP32
+  #else
+    out = new AudioOutputI2S();//0, 0, 8, 1); //int port=0, int output_mode=EXTERNAL_I2S, int dma_buf_count = 8, int use_apll=APLL_DISABLE)
+    out->SetPinout(16, 17, 4);
+    //BLKClk 1
+    //wclkPin 22
+    //doutPin 3
+    //out = new AudioOutputI2S(); 
+    //I2S pin 	Common label* 	ESP8266 pin
+    //LRC 	D4 	GPIO2
+    //BCLK 	D8 	GPIO15
+    //DIN 	RX 	GPIO3
+  #endif
+
   wav = new AudioGeneratorWAV();
   wav->begin(file, out);
   sourceFile = new AudioFileSourceSD();

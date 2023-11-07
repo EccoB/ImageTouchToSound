@@ -5,6 +5,7 @@
 #include "soundfile.h"
 
 #define ROOTFOLDER "/frame/"
+#define ROOTSOUNDFOLDER "/frame/sounds/"
 #define EXAMPLEFILE "example.wav"
 
 
@@ -12,6 +13,7 @@ void filesystemSetup();
 fs::SDFS* getFileSystem();
 const char* getExampleFilePath();
 soundfile* getSoundFileForImage(int imageNumber);
+const bool loadImageList();
 
 /**
  Expected Structure
