@@ -5,12 +5,13 @@
 uint8_t touchpins[TOUCH_NB_OF_BUTTONS]={15,4};
 // An Pin 2 hängt die blaue LED!
 
-void touchEsetup(){
+void touchSensors::touchEsetup(void (*callback)(int)){
     Serial.println("Init touch - ESP");
+    this->touchEvent=callback;
 
 }
 
-void touchloop(){
+void touchSensors::touchloop(){
 
 
     for (int btn=0; btn<TOUCH_NB_OF_BUTTONS;btn++){

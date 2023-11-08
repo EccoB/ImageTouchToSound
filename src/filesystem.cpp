@@ -113,8 +113,8 @@ void testMp3(fs::FS &fs, const char * dirname, uint8_t levels){
 }
 
 SPIClass* spiOwn;
-void filesystemSetup(){
-    
+bool filesystemSetup(){
+    bool fileSystemSetupSuccess=true;
     /*
     SPIClass spi = SPIClass(VSPI);
     spi.begin(SCK, MISO, MOSI, CS);
@@ -128,8 +128,10 @@ void filesystemSetup(){
     spiOwn->begin(PIN_C_SCK, PIN_C_MISO, PIN_C_MOSI, PIN_C_CS);
     pinMode(PIN_C_CS, OUTPUT);
     //begin(uint8_t ssPin=SS, SPIClass &spi=SPI, uint32_t frequency=4000000, const char * mountpoint="/sd", uint8_t max_files=5, bool format_if_empty=false);
-    if (!SD.begin(PIN_C_CS,*spiOwn,40000000))
+    if (!SD.begin(PIN_C_CS,*spiOwn,40000000)){
         Serial.println("Card Mount Failed");
+        fileSystemSetupSuccess=false;
+    }
 
   //SD.open("/");
 
@@ -137,7 +139,7 @@ void filesystemSetup(){
 
   if(cardType == CARD_NONE){
     Serial.println("No SD card attached");
-    return;
+    return false;
   }
 
   Serial.print("SD Card Type: ");
@@ -157,6 +159,8 @@ void filesystemSetup(){
   listDir(SD, "/", 0);
   Serial.println("--------- Frame Folder -----------");
   listDir(SD, "/frame", 0);
+
+  return fileSystemSetupSuccess;
 
 }
 
@@ -243,13 +247,15 @@ bool addSoundFile(const char *folderpath, const char* cstr){
   }
 
   // -------- Seems like a valid file -----------
+  
   unsigned int imageNb = fileName.substring(0,2).toInt();
+  Serial.printf("SoundFile with number: %d is valid\n",imageNb);
   if(imageNb>=MAXIMAGES){
     return false; //we do not have enough space for the image
   }
   soundfile *snd= new soundfile(String(folderpath), fileName);
   soundfilelist[imageNb].push_back(snd);
-  Serial.printf("Added soundfile $s\n",snd->getFullPath());
+  Serial.printf("Added soundfile %s\n",snd->getFullPath().c_str());
   return true;
 }
 
@@ -257,7 +263,8 @@ bool addSoundFile(const char *folderpath, const char* cstr){
 
 bool loadFolderWithSoundFiles(int maxNbImages, const char *folderpath){
   Serial.printf("Loading images from directory: %s\n", folderpath);
-  
+  bool atLeastOneFileFound=false;
+
   fs::SDFS* fs = &SD;
   File root = fs->open(folderpath);
   if(!root){
@@ -281,10 +288,11 @@ bool loadFolderWithSoundFiles(int maxNbImages, const char *folderpath){
       Serial.println(file.size());
 
       // ----- Append to own list ---
-      addSoundFile(folderpath, file.name());
+      atLeastOneFileFound |= addSoundFile(folderpath, file.name());
     }
     file = root.openNextFile();
   }
+  return atLeastOneFileFound;
 
 
 }
@@ -292,7 +300,7 @@ bool loadFolderWithSoundFiles(int maxNbImages, const char *folderpath){
 bool loadImageCollectionList(){
   String folderpath = String(ROOTSOUNDFOLDER);
 
-  Serial.printf("Loading images from directory: %s\n", folderpath);
+  Serial.printf("Searching for collections in directory: %s\n", folderpath.c_str());
   
   fs::SDFS* fs = &SD;
   File root = fs->open(folderpath);
@@ -310,6 +318,14 @@ bool loadImageCollectionList(){
     if(file.isDirectory()){
       Serial.print("  DIR : ");
       Serial.println(file.name());
+      // We are interested in the folders
+      // For now, it is enough to just find the first folder
+      String subfolderpath=folderpath+String("/")+String(file.name());
+      char folderpathArray[40];
+      
+      subfolderpath.toCharArray(folderpathArray,30);
+      return loadFolderWithSoundFiles(MAXIMAGES,folderpathArray);
+
     } else {
       Serial.print("  FILE: ");
       Serial.print(file.name());
@@ -317,9 +333,9 @@ bool loadImageCollectionList(){
       Serial.println(file.size());
 
       // ----- Append to own list ---
-      char folderpathArray[30];
-      folderpath.toCharArray(folderpathArray,30);
-      addSoundFile(folderpathArray, file.name());
+      //char folderpathArray[30];
+      //folderpath.toCharArray(folderpathArray,30);
+      //addSoundFile(folderpathArray, file.name());
     }
     file = root.openNextFile();
   }
@@ -327,6 +343,7 @@ bool loadImageCollectionList(){
 }
 
 const bool loadImageList(){
-  return loadFolderWithSoundFiles(MAXIMAGES,ROOTSOUNDFOLDER);
+  return loadImageCollectionList();
+  //return loadFolderWithSoundFiles(MAXIMAGES,ROOTSOUNDFOLDER);
 
 }

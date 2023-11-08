@@ -88,8 +88,8 @@ bool setupSound(){
     //DIN 	RX 	GPIO3
   #endif
 
-  wav = new AudioGeneratorWAV();
-  wav->begin(file, out);
+  //wav = new AudioGeneratorWAV();
+  //wav->begin(file, out);
   sourceFile = new AudioFileSourceSD();
   return true;
 }
@@ -113,6 +113,52 @@ bool setFileSystem(fs::SDFS *fs){
   //sourceFile = new AudioFileSourceFS(*fileSystem);
   Serial.println("File System was set in Soundfile");
 }
+
+bool playInfoSound(const infosound sound){
+  auto soundFile = AudioFileSourceFunction(1.,1,8000,16);
+  //
+  // you can set (sec, channels, hz, bit/sample) but you should care about
+  // the trade-off between performance and the audio quality
+  //
+  // file = new AudioFileSourceFunction(sec, channels, hz, bit/sample);
+  // channels   : default = 1
+  // hz         : default = 8000 (8000, 11025, 22050, 44100, 48000, etc.)
+  // bit/sample : default = 16 (8, 16, 32)
+
+
+  switch(sound){
+    case infosound::noSDCard:
+      soundFile.addAudioGenerators([&](const float time) {
+        if (time<0.5)
+          return 0.1 * sin(TWO_PI * 440.f * time); // C
+        else
+          return 0.1 * sin(TWO_PI * 540.f * time); // C
+      });
+      break;
+    default:
+      soundFile.addAudioGenerators([&](const float time) {
+          if (time<0.3)
+            return 0.1 * sin(TWO_PI * 220.f * time); // C
+          else if(time<0.6)
+            return 0.;
+          else
+            return 0.1 * sin(TWO_PI * 220.f * time); // C
+      });
+      break;
+  }
+  decoderWAV->begin(&soundFile,out);
+
+  // Immediately start playing:
+  while ((decoderWAV) && (decoderWAV->isRunning())) {
+    if (!decoderWAV->loop()) decoderWAV->stop();
+  } 
+  Serial.println("Finished InfoSOund");
+  delay(100);
+  Serial.println("Finish");
+  return true;
+}
+
+
 bool playWAV(fs::File *file){
   Serial.println("Not supported");
 }
@@ -131,8 +177,21 @@ bool playWAV(const char *filepath){
 
   // Immediately start playing:
   while ((decoderWAV) && (decoderWAV->isRunning())) {
-    if (!decoderWAV->loop()) decoderWAV->stop();
-  } 
+    if (!decoderWAV->loop()) {
+      decoderWAV->stop();
+      return true;
+    }
+  }
+  return false; 
 
 }
 
+bool playSoundFile(soundfile *sndFile){
+  if(sndFile==nullptr || !sndFile->isValid()){
+    playInfoSound(infosound::noSoundFile);
+    return false;
+  }
+  char stringBuffer[40];
+  sndFile->getFullPath().toCharArray(stringBuffer,40);
+  return playWAV(stringBuffer);
+}
