@@ -94,7 +94,21 @@ bool setupSound(){
   return true;
 }
 
-void soundLoop(){
+/**
+ * Returns true while sound is playing
+*/
+bool soundLoop(){
+  bool soundPlaying = false;
+
+  if (decoderWAV && (decoderWAV->isRunning())) {
+      soundPlaying = true;
+      if (!decoderWAV->loop()) {
+        decoderWAV->stop();
+      }
+    }
+  return soundPlaying;
+
+/*
     Serial.println("SLoop");
     if (wav->isRunning()) {
     if (!wav->loop()) wav->stop();
@@ -102,6 +116,7 @@ void soundLoop(){
     Serial.println("function done!");
     delay(1000);
   }
+  */
 }
 
 
@@ -112,6 +127,7 @@ bool setFileSystem(fs::SDFS *fs){
   //fileSystem=fs;
   //sourceFile = new AudioFileSourceFS(*fileSystem);
   Serial.println("File System was set in Soundfile");
+  return true;
 }
 
 bool playInfoSound(const infosound sound){
@@ -161,6 +177,7 @@ bool playInfoSound(const infosound sound){
 
 bool playWAV(fs::File *file){
   Serial.println("Not supported");
+  return false;
 }
 bool playWAV(const char *filepath){
   // setFileSystem must be called beforehand
@@ -174,14 +191,17 @@ bool playWAV(const char *filepath){
 
   sourceFile->open(filepath);
   decoderWAV->begin(sourceFile,out);
+  return true;
 
   // Immediately start playing:
-  while ((decoderWAV) && (decoderWAV->isRunning())) {
-    if (!decoderWAV->loop()) {
-      decoderWAV->stop();
-      return true;
+  #ifdef SOUND_NO_LOOP
+    while ((decoderWAV) && (decoderWAV->isRunning())) {
+      if (!decoderWAV->loop()) {
+        decoderWAV->stop();
+        return true;
+      }
     }
-  }
+  #endif
   return false; 
 
 }

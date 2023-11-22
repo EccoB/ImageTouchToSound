@@ -10,7 +10,7 @@ enum class infosound{
 };
 
 
-void soundLoop();
+bool soundLoop();
 bool setupSound();
 
 bool playWAV(fs::File *file);

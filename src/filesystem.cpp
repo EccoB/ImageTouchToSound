@@ -128,7 +128,7 @@ bool filesystemSetup(){
     spiOwn->begin(PIN_C_SCK, PIN_C_MISO, PIN_C_MOSI, PIN_C_CS);
     pinMode(PIN_C_CS, OUTPUT);
     //begin(uint8_t ssPin=SS, SPIClass &spi=SPI, uint32_t frequency=4000000, const char * mountpoint="/sd", uint8_t max_files=5, bool format_if_empty=false);
-    if (!SD.begin(PIN_C_CS,*spiOwn,40000000)){
+    if (!SD.begin(PIN_C_CS,*spiOwn,80000000)){
         Serial.println("Card Mount Failed");
         fileSystemSetupSuccess=false;
     }
