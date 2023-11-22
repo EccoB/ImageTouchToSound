@@ -22,6 +22,7 @@ Touch:
 
 #define SD_CARD_PIN 26
 touchSensors touch;
+void print_wakeup_reason();
 
 void playSound(int imageNb){
   soundfile *snd = getSoundFileForImage(imageNb);
@@ -38,6 +39,7 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println("Start");
+  print_wakeup_reason();
   touch.touchEsetup(&playSound);
   pinMode(TPIN,OUTPUT);
   setupSound();
@@ -58,15 +60,14 @@ void setup() {
 
   //Example play
   
-  Serial.println("_-- Finished init ---");
-  delay(10);
+ 
 
   //playWAV(getExampleFilePath());
 
   //---- Testing soundFile play
-  Serial.println("Start to play sound");
-  delay(10);
-  playSound(0);
+  //Serial.println("Start to play sound");
+  //delay(10);
+  //playSound(0);
   /*
   playSound(0);
   Serial.println("Play agian");
@@ -93,4 +94,22 @@ void loop() {
     esp_deep_sleep_start();
   }
 
+}
+
+
+
+void print_wakeup_reason(){
+  esp_sleep_wakeup_cause_t wakeup_reason;
+
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+
+  switch(wakeup_reason)
+  {
+    case ESP_SLEEP_WAKEUP_EXT0 : Serial.println("Wakeup caused by external signal using RTC_IO"); break;
+    case ESP_SLEEP_WAKEUP_EXT1 : Serial.println("Wakeup caused by external signal using RTC_CNTL"); break;
+    case ESP_SLEEP_WAKEUP_TIMER : Serial.println("Wakeup caused by timer"); break;
+    case ESP_SLEEP_WAKEUP_TOUCHPAD : Serial.println("Wakeup caused by touchpad"); break;
+    case ESP_SLEEP_WAKEUP_ULP : Serial.println("Wakeup caused by ULP program"); break;
+    default : Serial.printf("Wakeup was not caused by deep sleep: %d\n",wakeup_reason); break;
+  }
 }
