@@ -5,8 +5,8 @@
 
 uint8_t touchpins[TOUCH_NB_OF_BUTTONS]      =   {13,12,14};
 touch_pad_t touchpads[TOUCH_NB_OF_BUTTONS]  =   {TOUCH_PAD_NUM4,TOUCH_PAD_NUM5,TOUCH_PAD_NUM6};
-touch_value_t touchThreshold[TOUCH_NB_OF_BUTTONS]={29,29,29};
-bool touchDetected[TOUCH_NB_OF_BUTTONS];
+touch_value_t touchThreshold[TOUCH_NB_OF_BUTTONS]={27,27,27};
+int touchDetected[TOUCH_NB_OF_BUTTONS];
 
 // An Pin 2 hängt die blaue LED!
 // /* Mapping between touchPin and Pad
@@ -25,19 +25,19 @@ bool touchDetected[TOUCH_NB_OF_BUTTONS];
 
 //---------------- The touch Functions ---------------
 void gotTouch0(){
- touchDetected[0] = true;
+ touchDetected[0]++;
 }
 
 void gotTouch1(){
- touchDetected[1] = true;
+ touchDetected[1]++;
 }
 
 void gotTouch2(){
- touchDetected[2] = true;
+ touchDetected[2]++;
 }
 
 void gotTouch3(){
- touchDetected[3] = true;
+ touchDetected[3]++;
 }
 void (*touchButtonISRs[TOUCH_MAX_NB_OF_BUTTONS])() = {gotTouch0, gotTouch1, gotTouch2};
 //-------------------------------------
@@ -62,7 +62,10 @@ void touchSensors::touchEsetup(void (*callback)(int)){
             if (touchPad ==touchpads[btn]){
                 touchDetected[btn]=true;
                 Serial.print("Touch Button detected:");
-                Serial.println(btn);
+                Serial.print(btn);
+                int touchValue= touchRead(touchpins[btn]);
+                Serial.print(" Value:");
+                Serial.println(touchValue);
             }
         }
              
@@ -76,16 +79,39 @@ void touchSensors::touchEsetup(void (*callback)(int)){
 
 }
 
+void touchSensors::enableMonitor(bool on){
+    monitor=true;
+
+}
+
 bool touchSensors::touchloop(){
     bool buttonPressed = false;
 
 
 
     for (int btn=0; btn<TOUCH_NB_OF_BUTTONS;btn++){
+
+        // monitor enabled, overwrites the rest
+        if(monitor){
+            int touchValue= touchRead(touchpins[btn]);
+
+            if(btn>0)
+                Serial.print(",");
+            
+            Serial.print("Btn");
+            Serial.print(btn);
+            Serial.print("|");
+            Serial.print(touchpins[btn]);
+            Serial.print(":");
+            Serial.print(touchValue);
+            
+            continue;           
+        }
         
 
     
         #ifndef TOUCH_USE_INTERRUPT
+            // Polling
             uint8_t button=touchpins[btn];
             int touchValue= touchRead(button);
             detectTouch(btn,touchValue);
@@ -97,10 +123,26 @@ bool touchSensors::touchloop(){
         #else
 
             // Interrupt driven
-            if(touchDetected[btn]==true){
-                touchDetected[btn]=false;
-                callBackTouchEvent(btn);
+            if(touchDetected[btn]){
+                touchDetected[btn]=0;
+                /*
+                int touchValue= touchRead(touchpins[btn]);
+                Serial.print("Exec Touch Button:");
+                Serial.print(btn);
+                Serial.print(" TouchRead:");
+                Serial.print(touchValue);
+                Serial.print(" TouchValue:");
+                Serial.println(touchDetected[btn]);
+                
+                
+                if (touchValue > touchThreshold[btn]){
+                    Serial.println("Skip.. too heigh");
+                    return true;
+                }
+                */
                 buttonPressed=true;
+                callBackTouchEvent(btn);
+                
             }
 
 
@@ -108,10 +150,16 @@ bool touchSensors::touchloop(){
 
         
         
+
         
         
         //Serial.print(ispressed);
         //Serial.print("\t");   
+    }
+
+    if(monitor){
+        Serial.println();
+        buttonPressed=true;
     }
     #ifdef DEBUG
     Serial.println();

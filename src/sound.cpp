@@ -21,7 +21,12 @@ AudioGeneratorWAV* decoderWAV;
 #include <AudioOutputI2S.h>
 AudioOutputI2S* out;
 
-
+#define PIN_BLKClK  16
+#define PIN_WCLK    17
+#define PIN_DOUT    4
+    //BLKClk 1
+    //wclkPin 22
+    //doutPin 3
 
 
 bool setupSound(){
@@ -77,7 +82,8 @@ bool setupSound(){
     out = new AudioOutputI2S(0,1); //Uncomment this line, comment the next one to use the internal DAC channel 1 (pin25) on ESP32
   #else
     out = new AudioOutputI2S();//0, 0, 8, 1); //int port=0, int output_mode=EXTERNAL_I2S, int dma_buf_count = 8, int use_apll=APLL_DISABLE)
-    out->SetPinout(16, 17, 4);
+    //out->SetPinout(16, 17, 4);
+    out->SetPinout(PIN_BLKClK, PIN_WCLK,PIN_DOUT);
     //BLKClk 1
     //wclkPin 22
     //doutPin 3
@@ -94,6 +100,19 @@ bool setupSound(){
   return true;
 }
 
+void soundDeepSleep(){
+  delete out;
+  /*
+  pinMode(PIN_BLKClK,OUTPUT);
+  pinMode(PIN_WCLK,OUTPUT);
+  pinMode(PIN_DOUT,OUTPUT);
+  digitalWrite(PIN_BLKClK,LOW);
+  digitalWrite(PIN_WCLK,LOW);
+  digitalWrite(PIN_DOUT,LOW);
+  */
+  //out->SetPinout(PIN_BLKClK, PIN_WCLK,PIN_DOUT)
+}
+
 /**
  * Returns true while sound is playing
 */
@@ -104,6 +123,8 @@ bool soundLoop(){
       soundPlaying = true;
       if (!decoderWAV->loop()) {
         decoderWAV->stop();
+        if (sourceFile!=nullptr)
+          sourceFile->close();
       }
     }
   return soundPlaying;
@@ -166,7 +187,9 @@ bool playInfoSound(const infosound sound){
 
   // Immediately start playing:
   while ((decoderWAV) && (decoderWAV->isRunning())) {
-    if (!decoderWAV->loop()) decoderWAV->stop();
+    if (!decoderWAV->loop()){
+        decoderWAV->stop();
+    } 
   } 
   Serial.println("Finished InfoSOund");
   delay(100);

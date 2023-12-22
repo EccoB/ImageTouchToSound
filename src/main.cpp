@@ -3,6 +3,9 @@
 #include "sound.h"
 #include "filesystem.h"
 #include <FS.h>
+
+#include <soc/soc.h>
+#include <soc/rtc_cntl_reg.h>
 /*
 PinLayout:
 Audio:
@@ -15,7 +18,7 @@ SD-Card:
 Touch:
 {15,4};
 */
-
+#define PIN_SD_POWER  25
 
 // put function declarations here:
 #define TPIN 2
@@ -36,7 +39,13 @@ void playSound(int imageNb){
 }
 
 void setup() {
+  //esp_sleep_pd_config(ESP_PD_DOMAIN_VDDSDIO, ESP_PD_OPTION_OFF);
+  //esp_deep_sleep_start();
   // put your setup code here, to run once:
+  pinMode(PIN_SD_POWER,OUTPUT);
+  digitalWrite(PIN_SD_POWER,HIGH);
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+
   Serial.begin(115200);
   Serial.println("Start");
   print_wakeup_reason();
@@ -48,7 +57,6 @@ void setup() {
   if(!fileSystemOK){
     playInfoSound(infosound::noSDCard);
     //ToDo: stop here and go into deep sleep 
-    delay(1000*1000);
     Serial.println("Finished");
   }
   else{
@@ -89,8 +97,20 @@ void loop() {
 
   if(!active){
     //We may go to sleep:
+    //FSdeepSleep();
+    digitalWrite(PIN_SD_POWER,LOW);
+    //soundDeepSleep();
+   
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_AUTO);
-    esp_sleep_enable_touchpad_wakeup();
+    
+    //https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/gpio.html
+    //gpio_hold_en()
+    //gpio_hold_dis(GPIO_NUM_21);
+    //gpio_deep_sleep_hold_dis();
+
+    //gpio_deep_sleep_hold_en();
+    //esp_sleep_enable_touchpad_wakeup();
+    
     esp_deep_sleep_start();
   }
 

@@ -8,10 +8,13 @@
 #define PIN_C_MISO 19
 #define PIN_C_MOSI 23
 #define PIN_C_CS   5
+
 #define MAXIMAGES 5
 #include "soundfile.h"
 char currentFilePath[50];
 std::list<soundfile*> soundfilelist[MAXIMAGES]; //Array of lists, each one has a list of soundfiles
+
+RTC_DATA_ATTR int    soundfileIndex[MAXIMAGES]; //For each soundfilelist, there is an own index which image should be played next
 
 /*
 SPI	  MOSI	    MISO	    CLK	      CS
@@ -132,6 +135,7 @@ bool filesystemSetup(){
         Serial.println("Card Mount Failed");
         fileSystemSetupSuccess=false;
     }
+    
 
   //SD.open("/");
 
@@ -154,14 +158,29 @@ bool filesystemSetup(){
   }
 
   uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+
+#ifdef DEBUG
   Serial.printf("SD Card Size: %lluMB\n", cardSize);
 
   listDir(SD, "/", 0);
   Serial.println("--------- Frame Folder -----------");
   listDir(SD, "/frame", 0);
-
+#endif
   return fileSystemSetupSuccess;
 
+}
+
+void FSdeepSleep(){
+  spiOwn->end();
+  pinMode(PIN_C_SCK,OUTPUT);
+  pinMode(PIN_C_MISO,OUTPUT);
+  pinMode(PIN_C_MOSI,OUTPUT);
+  pinMode(PIN_C_CS,OUTPUT);
+
+  digitalWrite(PIN_C_SCK,HIGH);
+  digitalWrite(PIN_C_MISO,HIGH);
+  digitalWrite(PIN_C_MOSI,HIGH);
+  digitalWrite(PIN_C_CS,HIGH);
 }
 
 void filesystemLoop(){
@@ -205,8 +224,12 @@ soundfile* getSoundFileForImage(int imageNumber){
   Array with pointers to lists of filenames
 
   */
-  std::array<char,30> exampleArray;
 
+
+
+  //new system:
+  return getSoundFileByIndex(imageNumber);
+  //wo do not care about the rest
   
   //std::list<std::array<char,30>> exampleLIst[5]; //maximum 5 images per folder
   //In each entry a list of a char array with max 30 characters of filename length
@@ -218,11 +241,37 @@ soundfile* getSoundFileForImage(int imageNumber){
     soundFileToPlay=soundListForImage->front();
     soundListForImage->pop_front();
     soundListForImage->push_back(soundFileToPlay);
+    //we need to alter that as
+
   }
   else{
 
   }
   return soundFileToPlay;
+
+}
+
+soundfile* getSoundFileByIndex(int imageNumber){
+  soundfile *soundFileToPlay=nullptr;
+
+  std::list<soundfile*>* soundListForImage=&soundfilelist[imageNumber];
+  unsigned int listSIze = soundListForImage->size();
+  if (listSIze>0){
+    std::list<soundfile*>::iterator it = soundListForImage->begin();
+    //next index to play=
+    int indexToPlay = soundfileIndex[imageNumber];
+    indexToPlay = (indexToPlay+1)%listSIze;
+    if (indexToPlay <0) {indexToPlay=0;}
+    soundfileIndex[imageNumber] = indexToPlay;
+    Serial.print("Index to play:");
+    Serial.println(indexToPlay);
+
+    for (int i=0; i<indexToPlay; i++){
+      ++it;
+    }
+    return *it;
+  }
+  return nullptr;
 
 }
 
@@ -339,6 +388,7 @@ bool loadImageCollectionList(){
     }
     file = root.openNextFile();
   }
+  return true;
 
 }
 

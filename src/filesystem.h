@@ -13,7 +13,9 @@ bool filesystemSetup();
 fs::SDFS* getFileSystem();
 const char* getExampleFilePath();
 soundfile* getSoundFileForImage(int imageNumber);
+soundfile* getSoundFileByIndex(int imageNumber);
 const bool loadImageList();
+void FSdeepSleep();
 
 /**
  Expected Structure

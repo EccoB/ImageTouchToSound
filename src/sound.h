@@ -12,6 +12,7 @@ enum class infosound{
 
 bool soundLoop();
 bool setupSound();
+void soundDeepSleep();
 
 bool playWAV(fs::File *file);
 bool playWAV(const char *filepath);
