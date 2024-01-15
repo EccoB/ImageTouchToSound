@@ -17,6 +17,11 @@ soundfile* getSoundFileByIndex(int imageNumber);
 const bool loadImageList();
 void FSdeepSleep();
 
+void setSoundFolderNb(int folderNumber);
+int getSountFolderNb();
+
+
+
 /**
  Expected Structure
  /frame/

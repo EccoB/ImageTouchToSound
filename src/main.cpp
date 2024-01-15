@@ -2,6 +2,7 @@
 #include "touch.h"
 #include "sound.h"
 #include "filesystem.h"
+#include "actionhandler.h"
 #include <FS.h>
 
 #include <soc/soc.h>
@@ -25,6 +26,7 @@ Touch:
 
 #define SD_CARD_PIN 26
 touchSensors touch;
+actionHandler action;
 void print_wakeup_reason();
 
 void playSound(int imageNb){
@@ -44,12 +46,13 @@ void setup() {
   // put your setup code here, to run once:
   pinMode(PIN_SD_POWER,OUTPUT);
   digitalWrite(PIN_SD_POWER,HIGH);
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+  //WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
 
   Serial.begin(115200);
   Serial.println("Start");
   print_wakeup_reason();
   touch.touchEsetup(&playSound);
+  action.setTouchClass(&touch);
   pinMode(TPIN,OUTPUT);
   setupSound();
   
@@ -61,8 +64,6 @@ void setup() {
   }
   else{
   fs::SDFS* fsystem =getFileSystem();
-  Serial.print("FileSystemaddress:");
-  Serial.println((unsigned int) &(*fsystem));
 
   loadImageList();
 
@@ -85,15 +86,18 @@ void setup() {
   playSound(1);
   */
   }
+  //touch.enableMonitor(true);
 }
 
 void loop() {
   bool active = false;
   // put your main code here, to run repeatedly:
+  active |= action.loop();
   active |= touch.touchloop();
   digitalWrite(TPIN,!digitalRead(TPIN));
   //delay(500);
   active |= soundLoop();
+  
 
   if(!active){
     //We may go to sleep:

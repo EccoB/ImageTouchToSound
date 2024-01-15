@@ -2,10 +2,13 @@
 #include <touch.h>
 #define TOUCH_USE_INTERRUPT
 #define TOUCH_DEADTIME_MS 500
+#define MAXPHASE 2
 
 uint8_t touchpins[TOUCH_NB_OF_BUTTONS]      =   {13,12,14};
 touch_pad_t touchpads[TOUCH_NB_OF_BUTTONS]  =   {TOUCH_PAD_NUM4,TOUCH_PAD_NUM5,TOUCH_PAD_NUM6};
-touch_value_t touchThreshold[TOUCH_NB_OF_BUTTONS]={27,27,27};
+//touch_value_t touchThreshold[TOUCH_NB_OF_BUTTONS]={24,30,25}; //Prototyp
+//touch_value_t touchThreshold[TOUCH_NB_OF_BUTTONS]={27,44,25};   //02
+touch_value_t touchThreshold[TOUCH_NB_OF_BUTTONS]={26,38,23};   //03
 int touchDetected[TOUCH_NB_OF_BUTTONS];
 
 // An Pin 2 hängt die blaue LED!
@@ -24,6 +27,7 @@ int touchDetected[TOUCH_NB_OF_BUTTONS];
 
 
 //---------------- The touch Functions ---------------
+// These are the interrupts that get called when a touch is detected
 void gotTouch0(){
  touchDetected[0]++;
 }
@@ -79,9 +83,31 @@ void touchSensors::touchEsetup(void (*callback)(int)){
 
 }
 
-void touchSensors::enableMonitor(bool on){
-    monitor=true;
+void touchSensors::enableMonitor(int phase){
 
+    if(phase>MAXPHASE)
+        monitor=0;
+    else
+        monitor=phase;
+
+    switch(phase){
+        case 0: //normal operation
+            for(int i=0; i<TOUCH_NB_OF_BUTTONS;i++){
+                touchAttachInterrupt(touchpins[i], touchButtonISRs[i], touchThreshold[i]);
+            }
+        break;
+        case 1: //monitor
+            for(int i=0; i<TOUCH_NB_OF_BUTTONS;i++){
+                touchDetachInterrupt(touchpins[i]);
+                //touchAttachInterrupt(touchpins[i], touchButtonISRs[i], touchThreshold[i]);
+            }
+        break;
+    }
+
+}
+
+int touchSensors::getMonitorStatus(){
+    return monitor;
 }
 
 bool touchSensors::touchloop(){
@@ -91,8 +117,9 @@ bool touchSensors::touchloop(){
 
     for (int btn=0; btn<TOUCH_NB_OF_BUTTONS;btn++){
 
+
         // monitor enabled, overwrites the rest
-        if(monitor){
+        if(monitor>0){
             int touchValue= touchRead(touchpins[btn]);
 
             if(btn>0)
@@ -103,7 +130,18 @@ bool touchSensors::touchloop(){
             Serial.print("|");
             Serial.print(touchpins[btn]);
             Serial.print(":");
-            Serial.print(touchValue);
+
+            //according to which phase, we do differnt stuff
+            if(monitor==1){
+                
+                Serial.print(touchValue);
+            }
+            else{
+                bool touchDetected = (touchValue<touchThreshold[btn]);
+                Serial.print(touchDetected);
+
+            }
+
             
             continue;           
         }

@@ -14,12 +14,13 @@ class touchSensors{
         void touchEsetup(void (*callback)(int));
         bool touchCheckIsPressed(int buttonNb);
         void callBackTouchEvent(int buttonNb);
-        void enableMonitor(bool on);
+        void enableMonitor(int phase);
+        int getMonitorStatus();
     protected:
         void (*touchEvent)(int) = nullptr;
         bool detectTouch(int button, int value);
         unsigned long lastTouch=0;
-        bool monitor=false;
+        int monitor=0;
   
 // 10M resistor between pins 4 & 2, pin 2 is sensor pin, add a wire and or foil if desired
 // 10M resistor between pins 4 & 6, pin 6 is sensor pin, add a wire and or foil

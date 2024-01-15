@@ -16,6 +16,8 @@ std::list<soundfile*> soundfilelist[MAXIMAGES]; //Array of lists, each one has a
 
 RTC_DATA_ATTR int    soundfileIndex[MAXIMAGES]; //For each soundfilelist, there is an own index which image should be played next
 
+RTC_DATA_ATTR int     soundFolderNumber;
+
 /*
 SPI	  MOSI	    MISO	    CLK	      CS
 VSPI	GPIO 23	  GPIO 19	  GPIO 18	  GPIO 5
@@ -135,7 +137,7 @@ bool filesystemSetup(){
         Serial.println("Card Mount Failed");
         fileSystemSetupSuccess=false;
     }
-    
+
 
   //SD.open("/");
 
@@ -298,7 +300,9 @@ bool addSoundFile(const char *folderpath, const char* cstr){
   // -------- Seems like a valid file -----------
   
   unsigned int imageNb = fileName.substring(0,2).toInt();
-  Serial.printf("SoundFile with number: %d is valid\n",imageNb);
+  #ifdef DEBUGFS
+    Serial.printf("SoundFile with number: %d is valid\n",imageNb);
+  #endif
   if(imageNb>=MAXIMAGES){
     return false; //we do not have enough space for the image
   }
@@ -328,13 +332,17 @@ bool loadFolderWithSoundFiles(int maxNbImages, const char *folderpath){
   File file = root.openNextFile();
   while(file){
     if(file.isDirectory()){
-      Serial.print("  DIR : ");
-      Serial.println(file.name());
+      #ifdef DEBUGFS
+        Serial.print("  DIR : ");
+        Serial.println(file.name());
+      #endif
     } else {
-      Serial.print("  FILE: ");
-      Serial.print(file.name());
-      Serial.print("  SIZE: ");
-      Serial.println(file.size());
+      #ifdef DEBUGFS
+        Serial.print("  FILE: ");
+        Serial.print(file.name());
+        Serial.print("  SIZE: ");
+        Serial.println(file.size());
+      #endif
 
       // ----- Append to own list ---
       atLeastOneFileFound |= addSoundFile(folderpath, file.name());
@@ -363,18 +371,25 @@ bool loadImageCollectionList(){
   }
 
   File file = root.openNextFile();
+  int currentfolderNumber=0;
   while(file){
     if(file.isDirectory()){
       Serial.print("  DIR : ");
       Serial.println(file.name());
-      // We are interested in the folders
-      // For now, it is enough to just find the first folder
-      String subfolderpath=folderpath+String("/")+String(file.name());
-      char folderpathArray[40];
-      
-      subfolderpath.toCharArray(folderpathArray,30);
-      return loadFolderWithSoundFiles(MAXIMAGES,folderpathArray);
 
+      //--- Check if we are already at the right position:
+      if(currentfolderNumber==soundFolderNumber){
+        //load the soundFolder
+        String subfolderpath=folderpath+String("/")+String(file.name());
+        char folderpathArray[40];
+      
+        subfolderpath.toCharArray(folderpathArray,30);
+        return loadFolderWithSoundFiles(MAXIMAGES,folderpathArray);
+      }
+      else{
+        currentfolderNumber++;
+      }
+      
     } else {
       Serial.print("  FILE: ");
       Serial.print(file.name());
@@ -388,9 +403,28 @@ bool loadImageCollectionList(){
     }
     file = root.openNextFile();
   }
+  //if we are at this point, no folder was found, or the soundFolderNumber is too high
+  setSoundFolderNb(0);
+  Serial.println("No Folder was found, or soundFolderNumber too high");
+
   return true;
 
 }
+
+void setSoundFolderNb(int folderNumber){
+  if(folderNumber<0 || folderNumber>10)
+    soundFolderNumber=0;
+  else
+    soundFolderNumber=folderNumber;
+
+}
+int getSountFolderNb(){
+  if (soundFolderNumber<0 || soundFolderNumber>10){ //Max 10 folders
+    soundFolderNumber=0;
+  }
+  return soundFolderNumber;
+}
+
 
 const bool loadImageList(){
   return loadImageCollectionList();
